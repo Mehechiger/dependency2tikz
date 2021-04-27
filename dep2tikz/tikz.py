@@ -2,9 +2,7 @@
 # -*- coding:utf-8 -*-
 
 class Tikz:
-    def __init__(self, trees, gold=None, paperheight='200cm', paperwidth='50cm', theme='simple'):
-        self.trees = trees
-        self.gold = gold
+    def __init__(self, paperheight='200cm', paperwidth='50cm', theme='simple'):
         self.buffer = r''
         self.paperheight = paperheight
         self.paperwidth = paperwidth
@@ -16,27 +14,28 @@ class Tikz:
     def reset_buffer(self):
         self.buffer = r''
 
-    def write_all(self, filename):
-        self.reset_buffer()
-        self.before_process_document()
-        for tree in self.trees:
-            self.process_tree(tree)
-        if self.gold is not None:
-            self.process_tree(self.gold)
-        self.after_process_document()
+    def write(self, filename):
         with open(filename, "w") as f:
             f.write(self.buffer)
         self.reset_buffer()
 
-    def before_process_document(self):
-        self.to_buffer(r'\documentclass[multi=dependency]{standalone}')
-        self.to_buffer(r'\usepackage[paperheight=%s, paperwidth=%s, top=0cm, bottom=0cm, left=0cm, right=0cm]{geometry}' % (self.paperheight, self.paperwidth))
+    def add_trees(self, trees):
+        for tree in trees:
+            self.process_tree(tree)
+
+    def add_gold(self, gold):
+        self.process_tree(gold)
+
+    def begin_doc(self):
+        self.reset_buffer()
+        self.to_buffer(r'\documentclass[multi=dependency]{article}')
+        self.to_buffer(r'\usepackage[paperheight=%s, paperwidth=%s, top=10cm, bottom=5cm, left=10cm, right=5cm]{geometry}' % (self.paperheight, self.paperwidth))
         self.to_buffer(r'\usepackage[T1]{fontenc}')
         self.to_buffer(r'\usepackage[utf8]{inputenc}')
         self.to_buffer(r'\usepackage{tikz-dependency}')
         self.to_buffer(r'\begin{document}')
 
-    def after_process_document(self):
+    def end_doc(self):
         self.to_buffer(r'\end{document}')
 
     def process_tree(self, tree):
