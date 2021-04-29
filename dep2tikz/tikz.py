@@ -1,11 +1,27 @@
 #!/usr/bin/python3
 # -*- coding:utf-8 -*-
+import re
+
+
+def _sub_spes(w):
+    w = re.sub(r'\\', r'\\textbackslash ', w)
+    w = re.sub(r'(?=[\$%#\{\}])', r'\\', w)
+    w = re.sub(r'_', r'\\_{}', w)
+    w = re.sub(r'\^', r'\\^{}', w)
+    w = re.sub(r'~', r'\\~{}', w)
+    return w
+
+def _sub_spes_list(l):
+    res = []
+    for w in l:
+        if w is not None:
+            w = _sub_spes(w)
+        res.append(w)
+    return res
 
 class Tikz:
-    def __init__(self, paperheight='200cm', paperwidth='50cm', theme='simple'):
+    def __init__(self, theme='simple'):
         self.buffer = r''
-        self.paperheight = paperheight
-        self.paperwidth = paperwidth
         self.theme = theme
 
     def to_buffer(self, string):
@@ -23,13 +39,13 @@ class Tikz:
         for tree in trees:
             self.process_tree(tree)
 
-    def add_gold(self, gold):
-        self.process_tree(gold)
+    def add_tree(self, tree):
+        self.process_tree(tree)
 
     def begin_doc(self):
         self.reset_buffer()
-        self.to_buffer(r'\documentclass[multi=dependency]{article}')
-        self.to_buffer(r'\usepackage[paperheight=%s, paperwidth=%s, top=10cm, bottom=5cm, left=10cm, right=5cm]{geometry}' % (self.paperheight, self.paperwidth))
+        self.to_buffer(r'\documentclass[multi=dependency]{standalone}')
+        self.to_buffer(r'\usepackage[usenames,dvipsnames]{xcolor}')
         self.to_buffer(r'\usepackage[T1]{fontenc}')
         self.to_buffer(r'\usepackage[utf8]{inputenc}')
         self.to_buffer(r'\usepackage{tikz-dependency}')
@@ -41,9 +57,9 @@ class Tikz:
     def process_tree(self, tree):
         self.to_buffer(r'\begin{dependency}[theme=%s]' % self.theme)
 
-        self.to_buffer(r'\begin{deptext}[column sep=1em]')
-        self.to_buffer(r' \& '.join(tree.tokens) + r' \\')
-        self.to_buffer(r' \& '.join(tree.tags.values()) + r' \\')
+        self.to_buffer(r'\begin{deptext}' + '\n')
+        self.to_buffer(r' \& '.join(_sub_spes_list(tree.tokens)) + r' \\')
+        self.to_buffer(r' \& '.join(_sub_spes_list(tree.tags.values())) + r' \\')
         self.to_buffer(r'\end{deptext}')
 
         for dep in tree.deps:
@@ -53,7 +69,7 @@ class Tikz:
             if dep.gov is None:
                 self.to_buffer(r'\deproot%s{%d}{root}' % (color, dep.dep))
             else:
-                self.to_buffer(r'\depedge%s{%d}{%d}{%s}' % (color, dep.gov, dep.dep, dep.rel))
+                self.to_buffer(r'\depedge%s{%d}{%d}{%s}' % (color, dep.gov, dep.dep, _sub_spes(dep.rel + (dep.rel_prev if dep.rel_prev is not None else ''))))
 
         for sdp in tree.sdps:
             color = r''
@@ -62,7 +78,7 @@ class Tikz:
             if sdp.gov is None:
                 self.to_buffer(r'\deproot%s{%d}{toppred}' % (r'[edge below%s]' % color, sdp.dep))
             else:
-                self.to_buffer(r'\depedge%s{%d}{%d}{%s}' % (r'[edge below%s]' % color, sdp.gov, sdp.dep, sdp.rel))
+                self.to_buffer(r'\depedge%s{%d}{%d}{%s}' % (r'[edge below%s]' % color, sdp.gov, sdp.dep, _sub_spes(sdp.rel + (sdp.rel_prev if sdp.rel_prev is not None else ''))))
 
         self.to_buffer(r'\end{dependency}')
         self.to_buffer('')  # empty line marks a new paragraph in LaTeX, but multi=dependency causes newpage

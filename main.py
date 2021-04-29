@@ -54,18 +54,18 @@ if __name__ == '__main__':
     sdps = [(None, 'toppred', 8), (2, 'ARG1', 8), (1, 'ARG1EE', 8), (4, 'ARG2', 2)]
     tree_7 = Tree(tokens, tags, [Arc(dep[2], dep[0], dep[1]) for dep in deps], [Arc(sdp[2], sdp[0], sdp[1]) for sdp in sdps])
 
-    trees = ForestStructure([tree_1, tree_2, tree_3, tree_4, tree_5, tree_6, tree_7])
+    trees = ForestStructure([tree_1, tree_2, tree_3, tree_4, tree_5, tree_6, tree_7]).diff()
     
     tikz = Tikz()
     tikz.begin_doc()
     tikz.to_buffer(r'\section{546518312}')
     tikz.add_trees(trees)
     tikz.to_buffer(r'\subsection{gold}')
-    tikz.add_gold(tree_7)
+    tikz.add_tree(tree_7)
     tikz.to_buffer(r'\newpage')
     tikz.to_buffer(r'\section{546518312}')
     tikz.add_trees(trees)
     tikz.to_buffer(r'\subsection{gold}')
-    tikz.add_gold(tree_7)
+    tikz.add_tree(tree_7)
     tikz.end_doc()
     tikz.write(args.output)
