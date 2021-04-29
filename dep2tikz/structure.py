@@ -1,20 +1,10 @@
 #!/usr/bin/python3
 # -*- coding:utf-8 -*-
+from .tikz import _sub_spes
 
-class Arc:
-    def __init__(self, dep, gov=None, rel=None, color=None, start=0):
-        self.dep = dep
-        self.gov = gov
-        self.rel = rel
-        self.rel_prev = None
+class AnnotationUnit:
+    def __init__(self, color=None):
         self.color = color
-        self.start = start
-        if self.start is None:
-            return
-        elif self.start == 0:
-            self.dep += 1
-            if self.gov is not None:
-                self.gov += 1
 
     def paint(self, color=None):
         self.color = color
@@ -24,7 +14,106 @@ class Arc:
         return self.paint()
 
     def copy(self):
-        return Arc(dep=self.dep, gov=self.gov, rel=self.rel, color=self.color, start=None)
+        raise NotImplementedError
+
+    def __hash__(self):
+        raise NotImplementedError
+
+    def __eq__(self, other):
+        raise NotImplementedError
+
+
+class AnnotationUnitWithPrev(AnnotationUnit):
+    def __init__(self, form, color=None):
+        super().__init__(color=color)
+        self.set_form(form)
+        self.form_prev = None
+        self.color_prev = None
+
+    def set_form(self, form):
+        self.form = form
+        return self
+
+    @property
+    def empty(self):
+        return self.form is None
+
+    def copy(self):
+        return AnnotationUnitWithPrev(form=self.form, color=self.color)
+
+    def __hash__(self):
+        return self.form.__hash__()
+
+    def __eq__(self, other):
+        return (self.__class__ == other.__class__) and (self.form == other.form)
+
+    def __str__(self):
+        if self.form == None:  # In current configurations, neither token nor tag could be deleted without adding a new one (sub allowed)
+            return r'\qquad'
+
+        form = _sub_spes(self.form)
+        if self.color is not None:
+            string = r'\textcolor{%s}{%s}' % (self.color, form)
+        else:
+            string = form
+        if self.form_prev is not None and self.color_prev is not None:
+            form_prev = _sub_spes(self.form_prev)
+            string += r'/\textcolor{%s}{%s}' % (self.color_prev, form_prev)
+        return string
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class Token(AnnotationUnitWithPrev):
+    def __init__(self, form, color=None):
+        super().__init__(form=form, color=color)
+
+    def copy(self):
+        return Token(form=self.form, color=self.color)
+
+
+class Tag(AnnotationUnitWithPrev):
+    def __init__(self, form, form_prev=None, color=None, color_prev=None):
+        super().__init__(form=form, color=color)
+        self.form_prev = form_prev
+        self.color_prev = color_prev
+
+    def set_form_prev(self, form_prev=None):
+        self.form_prev = form_prev
+        return self
+
+    def paint_prev(self, color_prev=None):
+        self.color_prev = color_prev
+        return self
+
+    def copy(self):
+        return Tag(form=self.form, form_prev=self.form_prev, color=self.color, color_prev=self.color_prev)
+
+    def drop_prev(self):
+        return self.set_form_prev().paint_prev()
+
+
+class Arc(AnnotationUnit):
+    def __init__(self, dep, gov=None, rel=None, rel_prev=None, color=None, start=0):
+        super().__init__(color=color)
+        self.dep = dep
+        self.gov = gov
+        self.rel = rel
+        self.rel_prev = rel_prev
+        if start is None:
+            return
+        elif start == 0:
+            self.dep += 1
+            if self.gov is not None:
+                self.gov += 1
+
+    def copy(self):
+        return Arc(dep=self.dep, gov=self.gov, rel=self.rel, rel_prev=self.rel_prev, color=self.color, start=None)
+
+    def drop_prev(self):
+        self.rel_prev = None
+        return self
 
     def __hash__(self):
         return (self.dep, self.gov, self.rel).__hash__()
@@ -33,18 +122,17 @@ class Arc:
         return (self.__class__ == other.__class__) and (self.gov == other.gov) and (self.dep == other.dep) and (self.rel == other.rel)
 
 
-class Tree:
+class AnnotationSet:
     def __init__(self, id, tokens, tags=None, deps=None, sdps=None, color_add='blue', color_del='red', color_sub='green', show_token_pos=True):
         self.id = id
-        self.tokens = tokens
-        self._process(tags, deps, sdps, show_token_pos)
+        self._process(tokens, tags, deps, sdps, show_token_pos)
         self.components = [self.with_tag, self.with_syn, self.with_sem]
         self.color_add = color_add
         self.color_del = color_del
         self.color_sub = color_sub
 
     def __eq__(self, other):
-        return (self.__class__ == other.__class__) and (self.tags_ == other.tags_) and (self.deps_cleaned == other.deps_cleaned) and (self.sdps_cleaned == other.sdps_cleaned)
+        return (self.__class__ == other.__class__) and (self.tokens == other.tokens) and (self.tags_cleaned == other.tags_cleaned) and (self.deps_cleaned == other.deps_cleaned) and (self.sdps_cleaned == other.sdps_cleaned)
 
     def set_colors(self, color_add='blue', color_del='red', color_sub='green'):
         self.color_add = color_add
@@ -53,59 +141,64 @@ class Tree:
         return self
 
     def paint_all(self, color=None):
-        self.tokens = [(r'\textcolor{%s}{%s}' % (color, token) if color is not None else token) for token in self.tokens]
+        self.tokens = [token.paint(color) for token in self.tokens]
+
         if self.with_tag:
-            self.tags = {i: (r'\textcolor{%s}{%s}' % (color, (tag if tag is not None else r'\qquad')) if color is not None else (tag if tag is not None else r'\qquad')) for i, tag in enumerate(self.tags_, 1)}
+            self.tags = [tag.paint(color) for tag in self.tags]
+
         if self.with_syn:
             self.deps = {dep.paint(color) for dep in self.deps}
+
         if self.with_sem:
             self.sdps = {sdp.paint(color) for sdp in self.sdps}
+
         return self
 
     def bleach_all(self, clean=False):
         if clean:
+            self.tags = self.tags_cleaned
             self.deps = self.deps_cleaned
             self.sdps = self.sdps_cleaned
         return self.paint_all()
 
-    def _process(self, tags=None, deps=None, sdps=None, show_token_pos=True):
-        if show_token_pos:
-            self.tokens = ['[%s]%s' % (pos, token) for pos, token in enumerate(self.tokens, 1)]
+    def _process(self, tokens, tags=None, deps=None, sdps=None, show_token_pos=True):
+        self.tokens = tokens
 
         if tags is not None:
             self.with_tag = True
-            self.tags_ = tags
-            self.tags = {i: (tag_ if tag_ is not None else r'\qquad') for i, tag_ in enumerate(self.tags_, 1)}
+            self.tags = tags
 
         if deps is not None:
             self.with_syn = True
-            self.deps = set()
-            for dep_ in deps:
-                self.deps.add(dep_)
+            self.deps = set(deps)
 
         if sdps is not None:
             self.with_sem = True
-            self.sdps = set()
-            for sdp_ in sdps:
-                self.sdps.add(sdp_)
+            self.sdps = set(sdps)
+
+    @property
+    def tags_cleaned(self):
+        return [tag.drop_prev() for tag in self.tags]
 
     @property
     def deps_cleaned(self):
-        return {dep for dep in self.deps if dep.color != self.color_del}
+        return {dep.drop_prev() for dep in self.deps if dep.color != self.color_del}
 
     @property
     def sdps_cleaned(self):
-        return {sdp for sdp in self.sdps if sdp.color != self.color_del}
+        return {sdp.drop_prev() for sdp in self.sdps if sdp.color != self.color_del}
 
     def diff(self, tags, deps, sdps):
         self.bleach_all(clean=True)
         if self.with_tag and tags["prev"]:
             pos = tags["prev"][0][0]
+            prev = tags["prev"][0][2]
             new = tags["new"][0][2]
-            if self.tags_[pos] is None:
-                self.tags[pos + 1] = r'\textcolor{%s}{%s}' % (self.color_add, new)
+            tag = self.tags[pos]
+            if tag.empty:
+                tag.set_form(new).paint(self.color_add)
             else:
-                self.tags[pos + 1] = r'\textcolor{%s}{%s}\textcolor{%s}{/%s}' % (self.color_sub, new, self.color_del, self.tags_[pos])
+                tag.set_form_prev(prev).paint_prev(self.color_del).set_form(new).paint(self.color_sub)
 
         if self.with_syn and deps["prev"]:
             dels = set()
@@ -157,17 +250,16 @@ class Tree:
         return self
 
     def _diff(self, other):
-        # TODO
         assert self.components == other.components
         if self.with_tag:
-            for i, tag in self.tags.items():
-                if other.tags_[i - 1] is None:
-                    if self.tags_[i - 1] is not None:
-                        self.tags[i] = r'\textcolor{%s}{%s}' % (self.color_add, tag)
-                elif self.tags_[i - 1] == other.tags_[i - 1]:
-                    self.tags[i] = self.tags_[i - 1] if self.tags_[i - 1] is not None else r'\qquad'
+            for i, tag in enumerate(self.tags):
+                if other.tags[i].empty:
+                    if not tag.empty:
+                        tag.paint(self.color_add)
+                elif tag == other.tags[i]:
+                    tag.bleach()
                 else:
-                    self.tags[i] = r'\textcolor{%s}{%s}' % (self.color_sub, tag)
+                    tag.set_form_prev(other.tags[i].form).paint_prev(self.color_del).paint(self.color_sub)
 
         if self.with_syn:
             only_this = {dep.copy(): True for dep in self.deps_cleaned.difference(other.deps_cleaned)}
@@ -204,7 +296,7 @@ class Tree:
         return self
 
 
-class ForestStructure:
+class AnnotationSetStructure:
     def __init__(self, trees):
         self.trees_ = trees
 
@@ -219,8 +311,8 @@ class ForestStructure:
             for tree in self.trees_:
                 corrections_tree = corrections_ep[tree.id]
                 tags = corrections_tree["tags"]
-                deps = {k: {Arc(*arc) for arc in v} for k, v in corrections_tree["deps"].items()}
-                sdps = {k: {Arc(*arc) for arc in v} for k, v in corrections_tree["sdps"].items()}
+                deps = {k: {Arc(dep=arc[0], gov=arc[1], rel=arc[2]) for arc in v} for k, v in corrections_tree["deps"].items()}
+                sdps = {k: {Arc(dep=arc[0], gov=arc[1], rel=arc[2]) for arc in v} for k, v in corrections_tree["sdps"].items()}
                 self.trees.append(tree.diff(tags, deps, sdps))
             return self
 

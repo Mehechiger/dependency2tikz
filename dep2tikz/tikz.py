@@ -55,11 +55,12 @@ class Tikz:
         self.to_buffer(r'\end{document}')
 
     def process_tree(self, tree):
+        #  automatically adding offsets when a pos has too many in/out arcs
         self.to_buffer(r'\begin{dependency}[theme=%s]' % self.theme)
 
         self.to_buffer(r'\begin{deptext}' + '\n')
-        self.to_buffer(r' \& '.join(_sub_spes_list(tree.tokens)) + r' \\')
-        self.to_buffer(r' \& '.join(_sub_spes_list(tree.tags.values())) + r' \\')
+        self.to_buffer(r' \& '.join(map(str, tree.tokens)) + r' \\')
+        self.to_buffer(r' \& '.join(map(str, tree.tags)) + r' \\')
         self.to_buffer(r'\end{deptext}')
 
         for dep in tree.deps:
