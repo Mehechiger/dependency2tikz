@@ -30,8 +30,8 @@ if __name__ == '__main__':
         for count_action, group in corrections_df_ep.groupby("count_action"):
             corrections_ep[count_action] = defaultdict(lambda: defaultdict(list))
             for key, action_type in [("tags", "tag"), ("deps", "syn"), ("sdps", "sem")]:
-                corrections_ep[count_action][key]["prev"] = [tuple(x) for x in group[group["action_type"] == action_type][["prev_dep", "prev_gov", "prev_rel"]].to_numpy()]
-                corrections_ep[count_action][key]["new"] = [tuple(x) for x in group[group["action_type"] == action_type][["new_dep", "new_gov", "new_rel"]].to_numpy()]
+                corrections_ep[count_action][key]["prev"] = [tuple(map(lambda x: x if x != -1 else None, x)) for x in group[group["action_type"] == action_type][["prev_dep", "prev_gov", "prev_rel"]].to_numpy()]
+                corrections_ep[count_action][key]["new"] = [tuple(map(lambda x: x if x != -1 else None, x)) for x in group[group["action_type"] == action_type][["new_dep", "new_gov", "new_rel"]].to_numpy()]
 
         filename = os.path.join(args.output_dir, "ep_%s_%s_.tex" % (ep, len(trees)))
         tikz = Tikz()

@@ -9,6 +9,7 @@ def _sub_spes(w):
     w = re.sub(r'_', r'\\_{}', w)
     w = re.sub(r'\^', r'\\^{}', w)
     w = re.sub(r'~', r'\\~{}', w)
+    w = re.sub(r'&', r'-AMPERSAND-', w)  # TODO: ???????
     return w
 
 def _sub_spes_list(l):
