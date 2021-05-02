@@ -109,6 +109,10 @@ class Arc(AnnotationUnit):
             if self.gov is not None:
                 self.gov += 1
 
+    def set_rel_prev(self, rel_prev=None):
+        self.rel_prev = rel_prev
+        return self
+
     def paint_prev(self, color_prev=None):
         self.color_prev = color_prev
         return self
@@ -126,8 +130,18 @@ class Arc(AnnotationUnit):
     def __eq__(self, other):
         return (self.__class__ == other.__class__) and (self.gov == other.gov) and (self.dep == other.dep) and (self.rel == other.rel)
 
-    def __str__(self):
-        string = _sub_spes(self.rel)
+    def str(self, rel=None):
+        if rel is None:
+            if self.rel is None:
+                return ""
+            else:
+                rel = self.rel
+
+        rel = _sub_spes(rel)
+        if self.color is not None:
+            string = r'\textcolor{%s}{%s}' % (self.color, rel)
+        else:
+            string = rel
         if self.rel_prev is not None and self.color_prev is not None:
             rel_prev = _sub_spes(self.rel_prev)
             string += r'/\textcolor{%s}{%s}' % (self.color_prev, rel_prev)
@@ -219,9 +233,7 @@ class AnnotationSet:
                 is_del = True
                 for new in deps["new"]:
                     if prev.dep == new.dep and prev.gov == new.gov:
-                        sub = new.copy()
-                        sub.rel_prev = "/" + prev.rel
-                        sub.color_prev = self.color_del
+                        sub = new.copy().set_rel_prev(prev.rel).paint_prev(self.color_del)
                         subs.add(sub)
                         is_del = False
                 if is_del:
@@ -244,9 +256,7 @@ class AnnotationSet:
                 is_del = True
                 for new in sdps["new"]:
                     if prev.dep == new.dep and prev.gov == new.gov:
-                        sub = new.copy()
-                        sub.rel_prev = "/" + prev.rel
-                        sub.color_prev = self.color_del
+                        sub = new.copy().set_rel_prev(prev.rel).paint_prev(self.color_del)
                         subs.add(sub)
                         is_del = False
                 if is_del:
@@ -282,7 +292,7 @@ class AnnotationSet:
             for dep in only_this:
                 for other_dep in only_other:
                     if dep.dep == other_dep.dep and dep.gov == other_dep.gov:
-                        self.deps.add(dep.paint(self.color_sub))
+                        self.deps.add(dep.paint(self.color_sub).set_rel_prev(other_dep.rel).paint_prev(self.color_del))
                         only_other.remove(other_dep)
                         only_this[dep] = False
                         break
@@ -298,7 +308,7 @@ class AnnotationSet:
             for sdp in only_this:
                 for other_sdp in only_other:
                     if sdp.dep == other_sdp.dep and sdp.gov == other_sdp.gov:
-                        self.sdps.add(sdp.paint(self.color_sub))
+                        self.sdps.add(sdp.paint(self.color_sub).set_rel_prev(other_sdp.rel).paint_prev(self.color_del))
                         only_other.remove(other_sdp)
                         only_this[sdp] = False
                         break
