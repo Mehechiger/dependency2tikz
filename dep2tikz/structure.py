@@ -22,6 +22,9 @@ class AnnotationUnit:
     def __eq__(self, other):
         raise NotImplementedError
 
+    def __str__(self):
+        raise NotImplementedError
+
 
 class AnnotationUnitWithPrev(AnnotationUnit):
     def __init__(self, form, color=None):
@@ -61,9 +64,6 @@ class AnnotationUnitWithPrev(AnnotationUnit):
             string += r'/\textcolor{%s}{%s}' % (self.color_prev, form_prev)
         return string
 
-    def __repr__(self):
-        return self.__str__()
-
 
 class Token(AnnotationUnitWithPrev):
     def __init__(self, form, color=None):
@@ -95,12 +95,13 @@ class Tag(AnnotationUnitWithPrev):
 
 
 class Arc(AnnotationUnit):
-    def __init__(self, dep, gov=None, rel=None, rel_prev=None, color=None, start=0):
+    def __init__(self, dep, gov=None, rel=None, rel_prev=None, color=None, color_prev=None, start=0):
         super().__init__(color=color)
         self.dep = dep
         self.gov = gov
         self.rel = rel
         self.rel_prev = rel_prev
+        self.color_prev = color_prev
         if start is None:
             return
         elif start == 0:
@@ -108,8 +109,12 @@ class Arc(AnnotationUnit):
             if self.gov is not None:
                 self.gov += 1
 
+    def paint_prev(self, color_prev=None):
+        self.color_prev = color_prev
+        return self
+
     def copy(self):
-        return Arc(dep=self.dep, gov=self.gov, rel=self.rel, rel_prev=self.rel_prev, color=self.color, start=None)
+        return Arc(dep=self.dep, gov=self.gov, rel=self.rel, rel_prev=self.rel_prev, color=self.color, color_prev=self.color_prev, start=None)
 
     def drop_prev(self):
         self.rel_prev = None
@@ -120,6 +125,13 @@ class Arc(AnnotationUnit):
 
     def __eq__(self, other):
         return (self.__class__ == other.__class__) and (self.gov == other.gov) and (self.dep == other.dep) and (self.rel == other.rel)
+
+    def __str__(self):
+        string = _sub_spes(self.rel)
+        if self.rel_prev is not None and self.color_prev is not None:
+            rel_prev = _sub_spes(self.rel_prev)
+            string += r'/\textcolor{%s}{%s}' % (self.color_prev, rel_prev)
+        return string
 
 
 class AnnotationSet:
@@ -209,6 +221,7 @@ class AnnotationSet:
                     if prev.dep == new.dep and prev.gov == new.gov:
                         sub = new.copy()
                         sub.rel_prev = "/" + prev.rel
+                        sub.color_prev = self.color_del
                         subs.add(sub)
                         is_del = False
                 if is_del:
@@ -233,6 +246,7 @@ class AnnotationSet:
                     if prev.dep == new.dep and prev.gov == new.gov:
                         sub = new.copy()
                         sub.rel_prev = "/" + prev.rel
+                        sub.color_prev = self.color_del
                         subs.add(sub)
                         is_del = False
                 if is_del:

@@ -71,7 +71,7 @@ class Tikz:
             if dep.gov is None:
                 self.to_buffer(r'\deproot%s{%d}{root}' % (color, dep.dep))
             else:
-                self.to_buffer(r'\depedge%s{%d}{%d}{%s}' % (color, dep.gov, dep.dep, _sub_spes(dep.rel + (dep.rel_prev if dep.rel_prev is not None else ''))))
+                self.to_buffer(r'\depedge%s{%d}{%d}{%s}' % (color, dep.gov, dep.dep, str(dep)))
 
         for sdp in tree.sdps:
             color = r''
@@ -80,7 +80,7 @@ class Tikz:
             if sdp.gov is None:
                 self.to_buffer(r'\deproot%s{%d}{toppred}' % (r'[edge below%s]' % color, sdp.dep))
             else:
-                self.to_buffer(r'\depedge%s{%d}{%d}{%s}' % (r'[edge below%s]' % color, sdp.gov, sdp.dep, _sub_spes(sdp.rel + (sdp.rel_prev if sdp.rel_prev is not None else ''))))
+                self.to_buffer(r'\depedge%s{%d}{%d}{%s}' % (r'[edge below%s]' % color, sdp.gov, sdp.dep, str(sdp)))
 
         self.to_buffer(r'\end{dependency}')
         self.to_buffer('')  # empty line marks a new paragraph in LaTeX, but multi=dependency causes newpage
