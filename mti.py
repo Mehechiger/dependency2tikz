@@ -39,6 +39,8 @@ if __name__ == '__main__':
 
         gold = trees.pop('gold')
         pred = trees.pop('pred')
+        if trees == {}: # if no correction is logged
+            continue
         trees = sorted(trees.items(), key=lambda x:int(x[0]))
 
         trees = AnnotationSetStructure([AnnotationSet(id=int(count_action),
