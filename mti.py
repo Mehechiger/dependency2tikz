@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 
 import os
+import re
 from tqdm import tqdm
 from collections import defaultdict
 import argparse
@@ -33,7 +34,7 @@ if __name__ == '__main__':
                 corrections_ep[count_action][key]["prev"] = [tuple(map(lambda x: x if x != -1 else None, x)) for x in group[group["action_type"] == action_type][["prev_dep", "prev_gov", "prev_rel"]].to_numpy()]
                 corrections_ep[count_action][key]["new"] = [tuple(map(lambda x: x if x != -1 else None, x)) for x in group[group["action_type"] == action_type][["new_dep", "new_gov", "new_rel"]].to_numpy()]
 
-        filename = os.path.join(args.output_dir, "ep_%s_%s_.tex" % (ep, len(trees)))
+        filename = os.path.join(args.output_dir, "%s_%s_%s.tex" % (ep, len(trees), "_".join(map(lambda x: re.sub(r'\W', '', x), trees['gold']["sequence_info"][:10]))))
         tikz = Tikz()
         tikz.begin_doc()
 
