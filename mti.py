@@ -11,18 +11,16 @@ import pandas as pd
 from dep2tikz.tikz import Tikz
 from dep2tikz.structure import Token, Tag, Arc, AnnotationSet, AnnotationSetStructure
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-e", "--episodes", required=True)
-    parser.add_argument("-c", "--corrections", required=True)
-    parser.add_argument("-d", "--output_dir", required=True)
-    args = parser.parse_args()
+def run(filename, output_dir):
+    print(filename)
+    if os.path.isdir(output_dir):
+        print("files exist, skipping")
+        return
+    else:
+        os.mkdir(output_dir)
 
-    if not os.path.isdir(args.output_dir):
-        os.mkdir(args.output_dir)
-
-    eps = json.load(open(args.episodes))
-    corrections_df = pd.read_csv(args.corrections, index_col=0)
+    eps = json.load(open(filename + ".json", "r"))
+    corrections_df = pd.read_csv(filename + ".csv", index_col=0)
 
     for ep, trees in tqdm(eps.items()):
         corrections_df_ep = corrections_df[corrections_df["episode"] == int(ep)]
@@ -34,7 +32,7 @@ if __name__ == '__main__':
                 corrections_ep[count_action][key]["prev"] = [tuple(map(lambda x: x if x != -1 else None, x)) for x in group[group["action_type"] == action_type][["prev_dep", "prev_gov", "prev_rel"]].to_numpy()]
                 corrections_ep[count_action][key]["new"] = [tuple(map(lambda x: x if x != -1 else None, x)) for x in group[group["action_type"] == action_type][["new_dep", "new_gov", "new_rel"]].to_numpy()]
 
-        filename = os.path.join(args.output_dir, "%s_%s_%s.tex" % (ep, len(trees), "_".join(map(lambda x: re.sub(r'\W', '', x), trees['gold']["sequence_info"][:10]))))
+        filename = os.path.join(output_dir, "%s_%s_%s.tex" % (ep, len(trees), "_".join(map(lambda x: re.sub(r'\W', '', x), trees['gold']["sequence_info"][:10]))))
         tikz = Tikz()
         tikz.begin_doc()
 
@@ -72,3 +70,15 @@ if __name__ == '__main__':
 
         tikz.end_doc()
         tikz.write(filename)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--input_dir", required=True)
+    parser.add_argument("-o", "--output_dir", required=True)
+    args = parser.parse_args()
+
+    for filename in os.listdir(args.input_dir):
+        if filename[-5:] == ".json":
+            filename = filename[:-5]
+            run(os.path.join(args.input_dir, filename), os.path.join(args.output_dir, filename))
