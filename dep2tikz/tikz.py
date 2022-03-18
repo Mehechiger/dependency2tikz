@@ -64,23 +64,24 @@ class Tikz:
         self.to_buffer(r' \& '.join(map(str, tree.tags)) + r' \\')
         self.to_buffer(r'\end{deptext}')
 
-        for dep in tree.deps:
-            color = r''
-            if dep.color is not None:
-                color = r'[edge style={%s}]' % dep.color
-            if dep.gov is None:
-                self.to_buffer(r'\deproot%s{%d}{%s}' % (color, dep.dep, dep.str('root')))
-            else:
-                self.to_buffer(r'\depedge%s{%d}{%d}{%s}' % (color, dep.gov, dep.dep, dep.str()))
-
-        for sdp in tree.sdps:
-            color = r''
-            if sdp.color is not None:
-                color = r', edge style={%s}' % sdp.color
-            if sdp.gov is None:
-                self.to_buffer(r'\deproot%s{%d}{%s}' % (r'[edge below%s]' % color, sdp.dep, sdp.str('toppred')))
-            else:
-                self.to_buffer(r'\depedge%s{%d}{%d}{%s}' % (r'[edge below%s]' % color, sdp.gov, sdp.dep, sdp.str()))
+        if tree.with_syn:
+            for dep in tree.deps:
+                color = r''
+                if dep.color is not None:
+                    color = r'[edge style={%s}]' % dep.color
+                if dep.gov is None:
+                    self.to_buffer(r'\deproot%s{%d}{%s}' % (color, dep.dep, dep.str('root')))
+                else:
+                    self.to_buffer(r'\depedge%s{%d}{%d}{%s}' % (color, dep.gov, dep.dep, dep.str()))
+        if tree.with_sem:
+            for sdp in tree.sdps:
+                color = r''
+                if sdp.color is not None:
+                    color = r', edge style={%s}' % sdp.color
+                if sdp.gov is None:
+                    self.to_buffer(r'\deproot%s{%d}{%s}' % (r'[edge below%s]' % color, sdp.dep, sdp.str('toppred')))
+                else:
+                    self.to_buffer(r'\depedge%s{%d}{%d}{%s}' % (r'[edge below%s]' % color, sdp.gov, sdp.dep, sdp.str()))
 
         self.to_buffer(r'\end{dependency}')
         self.to_buffer('')  # empty line marks a new paragraph in LaTeX, but multi=dependency causes newpage
