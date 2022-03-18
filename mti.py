@@ -21,6 +21,7 @@ def run(filename, output_dir):
 
     eps = json.load(open(filename + ".json", "r"))
     corrections_df = pd.read_csv(filename + ".csv", index_col=0)
+    #corrections_df = corrections_df[corrections_df["effect"] == "correction"] # TODO make this script work as well with "first"!
 
     for ep, trees in tqdm(eps.items()):
         corrections_df_ep = corrections_df[corrections_df["episode"] == int(ep)]

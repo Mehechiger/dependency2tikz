@@ -189,6 +189,7 @@ class AnnotationSet:
 
     def _process(self, tokens, tags=None, deps=None, sdps=None, show_token_pos=True):
         self.tokens = tokens
+        self.with_tag, self.with_syn, self.with_sem = False, False, False
 
         if tags is not None:
             self.with_tag = True
